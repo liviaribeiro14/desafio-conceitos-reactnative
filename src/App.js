@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 import {
   SafeAreaView,
@@ -10,51 +10,83 @@ import {
   TouchableOpacity,
 } from "react-native";
 
+import api from "./services/api";
+
 export default function App() {
+  const [repositories, setRepositories] = useState([]);
+
+  useEffect(() => {
+    api.get("repositories").then((response) => {
+      console.log(response.data);
+      setRepositories(response.data);
+    });
+  }, []);
+
   async function handleLikeRepository(id) {
-    // Implement "Like Repository" functionality
+    const response = await api.post(`repositories/${id}/like`);
+
+    const repository = response.data;
+
+    setRepositories([
+      ...repositories.filter((repo) => repo.id !== id),
+      repository,
+    ]);
   }
 
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor="#7159c1" />
       <SafeAreaView style={styles.container}>
-        <View style={styles.repositoryContainer}>
-          <Text style={styles.repository}>Repository 1</Text>
-
-          <View style={styles.techsContainer}>
-            <Text style={styles.tech}>
-              ReactJS
+        {repositories.map((repository) => (
+          <View style={styles.repositoryContainer} key={repository.id}>
+            <Text style={styles.repository} key={`repo-name-${repository.id}`}>
+              {repository.title}
             </Text>
-            <Text style={styles.tech}>
-              Node.js
-            </Text>
-          </View>
-
-          <View style={styles.likesContainer}>
-            <Text
-              style={styles.likeText}
-              // Remember to replace "1" below with repository ID: {`repository-likes-${repository.id}`}
-              testID={`repository-likes-1`}
+            <FlatList
+              style={styles.techsContainer}
+              numColumns={5}
+              data={repository.techs}
+              keyExtractor={(tech) => tech}
+              renderItem={({ item: tech }) => (
+                <Text style={styles.tech}>{tech}</Text>
+              )}
+            />
+            <View
+              style={styles.likesContainer}
+              key={`likes-container-${repository.id}`}
             >
-              3 curtidas
-            </Text>
+              <Text
+                style={styles.likeText}
+                key={`repository-likes-${repository.id}`}
+                // Remember to replace "1" below with repository ID: {`repository-likes-${repository.id}`}
+                testID={`repository-likes-${repository.id}`}
+              >
+                {repository.likes === 0
+                  ? "Sem curtidas"
+                  : repository.likes === 1
+                  ? "1 curtida"
+                  : `${repository.likes} curtidas`}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => handleLikeRepository(repository.id)}
+              // Remember to replace "1" below with repository ID: {`like-button-${repository.id}`}
+              testID={`like-button-${repository.id}`}
+            >
+              <Text
+                style={styles.buttonText}
+                key={`like-text-${repository.id}`}
+              >
+                Curtir
+              </Text>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => handleLikeRepository(1)}
-            // Remember to replace "1" below with repository ID: {`like-button-${repository.id}`}
-            testID={`like-button-1`}
-          >
-            <Text style={styles.buttonText}>Curtir</Text>
-          </TouchableOpacity>
-        </View>
+        ))}
       </SafeAreaView>
     </>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -63,7 +95,7 @@ const styles = StyleSheet.create({
   repositoryContainer: {
     marginBottom: 15,
     marginHorizontal: 15,
-    backgroundColor: "#fff",
+    backgroundColor: "#ccc",
     padding: 20,
   },
   repository: {
